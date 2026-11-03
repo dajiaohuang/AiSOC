@@ -89,9 +89,23 @@ pytestmark = [
 # anything above them moves.
 SECRET = "-".join(("isolation", "auth", "escalation", "hs256", "test", "signing", "key"))
 
-#: A Fernet key for the credential vault, which the MFA routes construct on
-#: import. Generated once and fixed: it encrypts nothing this suite reads back.
-VAULT_KEY = "7Xb5_Qd3nK9pVc1sYw8tLm2hR4jF6gZ0aE_uN3oI5kM="
+
+def _vault_key() -> str:
+    """A throwaway Fernet key for the credential vault.
+
+    The vault refuses to construct without one outside development, and the
+    MFA routes build it on import. Minted per run rather than written down:
+    this suite encrypts nothing it reads back, and a literal 44-character
+    base64 string assigned to a name ending in ``KEY`` is precisely what
+    gitleaks' ``generic-api-key`` rule matches — correctly, since it cannot
+    know this one is disposable. Generating it leaves nothing to match and
+    nothing to pin in ``.gitleaksignore``, which indexes findings by line
+    number and goes stale the moment anything above them moves.
+    """
+    from cryptography.fernet import Fernet
+
+    return Fernet.generate_key().decode()
+
 
 TENANT = uuid.UUID("a5c00000-0000-0000-0000-0000000000e1")
 #: A second tenant that exists only so "lists every tenant" has something to
@@ -115,7 +129,7 @@ async def env():
     os.environ["DATABASE_URL"] = _dsn()
     os.environ["ENVIRONMENT"] = "test"
     os.environ["SECRET_KEY"] = SECRET
-    os.environ["AISOC_CREDENTIAL_KEY"] = VAULT_KEY
+    os.environ["AISOC_CREDENTIAL_KEY"] = _vault_key()
     os.environ.pop("AISOC_DEV_MODE", None)
     yield
 

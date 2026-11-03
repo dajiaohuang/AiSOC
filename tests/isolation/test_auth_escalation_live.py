@@ -139,7 +139,6 @@ async def principals(engine):  # noqa: ANN001
     left behind and pass for a reason that has nothing to do with its name.
     """
     import sqlalchemy
-
     from app.core.security import hash_api_key
 
     made: dict[str, object] = {}
@@ -147,8 +146,7 @@ async def principals(engine):  # noqa: ANN001
         for tid, slug in ((TENANT, "authesc-primary"), (OTHER_TENANT, "authesc-bystander")):
             await conn.execute(
                 sqlalchemy.text(
-                    "INSERT INTO tenants (id, name, slug, is_active) "
-                    "VALUES (CAST(:i AS uuid), :n, :s, true) ON CONFLICT (id) DO NOTHING"
+                    "INSERT INTO tenants (id, name, slug, is_active) VALUES (CAST(:i AS uuid), :n, :s, true) ON CONFLICT (id) DO NOTHING"
                 ),
                 {"i": str(tid), "n": slug, "s": slug},
             )
@@ -214,7 +212,6 @@ async def principals(engine):  # noqa: ANN001
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
 async def client(env, principals):  # noqa: ANN001
     import httpx
-
     from app.main import create_application
 
     transport = httpx.ASGITransport(app=create_application())
@@ -283,9 +280,7 @@ async def test_an_api_key_cannot_finish_passkey_registration(client, principals)
         json={"challenge": "x" * 32, "credential": {}},
     )
 
-    assert response.status_code == 403, (
-        f"an API key reached passkey registration finish: {response.status_code} {response.text[:200]}"
-    )
+    assert response.status_code == 403, f"an API key reached passkey registration finish: {response.status_code} {response.text[:200]}"
 
 
 async def test_an_api_key_cannot_revoke_a_passkey(client, principals):  # noqa: ANN001
@@ -298,9 +293,7 @@ async def test_an_api_key_cannot_revoke_a_passkey(client, principals):  # noqa: 
     """
     response = await client.delete(f"/api/v1/passkeys/credentials/{uuid.uuid4()}", headers=_key(principals["empty_key"]))
 
-    assert response.status_code == 403, (
-        f"an API key reached passkey revocation: {response.status_code} {response.text[:200]}"
-    )
+    assert response.status_code == 403, f"an API key reached passkey revocation: {response.status_code} {response.text[:200]}"
 
 
 async def test_an_api_key_cannot_begin_mfa_enrolment(client, principals):  # noqa: ANN001

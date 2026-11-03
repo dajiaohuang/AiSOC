@@ -764,11 +764,13 @@ async def disable(body: DisableRequest, current_user: SessionUser, db: DBSession
     A current code is required. Without it, a stolen session could strip
     the factor it was supposed to be protected by, which makes the factor
     worth exactly as much as the session.
-
-    ``SessionUser`` for the same reason the enrolment routes take it: this
-    used to admit an API key, and a key that had planted a TOTP secret knew
-    the code it would be asked for here (GHSA-jfvq-94hv-4wrj).
     """
+    # `SessionUser` for the same reason the enrolment routes take it: this used
+    # to admit an API key, and a key that had planted a TOTP secret knew the
+    # code it would be asked for here (GHSA-jfvq-94hv-4wrj).
+    # In a comment rather than the docstring, which is published as this
+    # operation's `description` in `docs/openapi.yaml`.
+
     await require_current_factor(
         db,
         user_id=current_user.user_id,

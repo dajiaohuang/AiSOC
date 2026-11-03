@@ -196,15 +196,18 @@ async def passkey_register_begin(
 ) -> dict[str, Any]:
     """Start passkey enrollment for the currently logged-in user.
 
-    ``SessionUser``, not ``AuthUser``: this used to admit an ``aisoc_`` API
-    key, which resolves to its owner's id and role, so a key scoped to
-    ``alerts:read`` could register a passkey on the owner's account and then
-    sign in with it (GHSA-jfvq-94hv-4wrj).
-
     Returns a JSON payload directly suitable for
     ``navigator.credentials.create({ publicKey: <returned> })`` after the
     standard Base64URL-decoding of the binary fields.
     """
+    # `SessionUser`, not `AuthUser`: this used to admit an `aisoc_` API key,
+    # which resolves to its owner's id and role, so a key scoped to
+    # `alerts:read` could register a passkey on the owner's account and then
+    # sign in with it (GHSA-jfvq-94hv-4wrj).
+    #
+    # In a comment because the docstring is published as this operation's
+    # `description` in `docs/openapi.yaml`, and an API description should say
+    # what the endpoint does.
     webauthn, _ = _import_webauthn()
 
     # Pull existing credential IDs so the browser hides them in the picker.
@@ -260,13 +263,14 @@ async def passkey_register_finish(
     user: SessionUser,
     db: TenantDBSession,
 ) -> PasskeyCredentialOut:
-    """Verify the attestation response and persist the new credential.
+    """Verify the attestation response and persist the new credential."""
+    # `SessionUser` here as well as on `begin`, and not only because the pair
+    # should agree: this is the call that writes the row, so a regression that
+    # reopened one of the two would still be caught on whichever half an
+    # attacker actually needs (GHSA-jfvq-94hv-4wrj).
+    # In a comment rather than the docstring, which is published as this
+    # operation's `description` in `docs/openapi.yaml`.
 
-    ``SessionUser`` here as well as on ``begin``, and not only because the
-    pair should agree: this is the call that writes the row, so a regression
-    that reopened one of the two would still be caught on whichever half an
-    attacker actually needs.
-    """
     webauthn, _ = _import_webauthn()
 
     challenge_row = await _consume_challenge(db, encoded=body.challenge, purpose="register")
@@ -676,14 +680,15 @@ async def revoke_credential(
     user: SessionUser,
     db: TenantDBSession,
 ) -> None:
-    """Revoke (soft-delete) one of the current user's passkeys.
+    """Revoke (soft-delete) one of the current user's passkeys."""
+    # Removing a factor is an authentication-state change in the same sense
+    # that adding one is, so it takes the same dependency. This route is in no
+    # report: a key with `scopes: []` answered 204 here against a real
+    # credential id, which is account lockout, or the removal of the second
+    # factor guarding an account a key is about to take over.
+    # In a comment rather than the docstring, which is published as this
+    # operation's `description` in `docs/openapi.yaml`.
 
-    Removing a factor is an authentication-state change in the same sense
-    that adding one is, so it takes the same dependency. This route is in no
-    report: a key with ``scopes: []`` answered 204 here against a real
-    credential id, which is account lockout, or the removal of the second
-    factor guarding an account a key is about to take over.
-    """
     row = (
         await db.execute(
             select(PasskeyCredential).where(

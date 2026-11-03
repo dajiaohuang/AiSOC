@@ -909,10 +909,18 @@ async def require_interactive_session(
     """
     method = current_user.auth_method()
     if method != "session":
+        # The account, not the credential. An earlier version logged
+        # `api_key_prefix` so an operator could tell which key was refused,
+        # and CodeQL was right to flag it (`py/clear-text-logging-sensitive-
+        # data`): that value is the first 20 characters of the key itself. It
+        # belongs in the audit column it already has and nowhere else, and no
+        # other code in this tree logs it. The user id answers the question an
+        # operator actually has — whose account was this aimed at — and is not
+        # a fragment of a credential.
         logger.warning(
-            "deps.non_session_credential_refused_at_auth_state method=%s prefix=%s",
+            "deps.non_session_credential_refused_at_auth_state method=%s user=%s",
             str(method).replace("\r", "").replace("\n", " ")[:32],
-            str(current_user.api_key_prefix or "-").replace("\r", "").replace("\n", " ")[:24],
+            str(current_user.user_id).replace("\r", "").replace("\n", " ")[:64],
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

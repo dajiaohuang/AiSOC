@@ -16,6 +16,15 @@ the production verifier is the one that judges them.
 Scope: one credential, "none" attestation, UP+UV+AT flags, which is what
 ``verify_registration_response(require_user_verification=True)`` demands. It is
 not a conformant authenticator and is not trying to be.
+
+Imports: ``cbor2`` and ``cryptography`` are deliberately resolved inside the
+methods that need them rather than at module scope. ``tests/isolation`` is
+collected by an offline job that installs a minimal dependency set, and a
+module-scope import of something that job does not install is a **collection**
+error — it takes down every unrelated test in the directory, not just this one.
+That has happened here before, where one such import failed 241 tests that had
+nothing to do with it. The live job installs the API's full lockfile, where
+both are present as dependencies of ``webauthn``.
 """
 
 from __future__ import annotations
@@ -26,10 +35,6 @@ import json
 import os
 import struct
 from typing import Any
-
-import cbor2
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec
 
 #: All-zero, the conventional "no attestation identity" value.
 AAGUID = b"\x00" * 16
@@ -51,6 +56,8 @@ class SoftAuthenticator:
     """One credential and its keypair, reusable across both ceremonies."""
 
     def __init__(self, rp_id: str = "localhost", origin: str = "http://localhost:3000") -> None:
+        from cryptography.hazmat.primitives.asymmetric import ec  # noqa: PLC0415 — see the module docstring
+
         self.rp_id = rp_id
         self.origin = origin
         self._private_key = ec.generate_private_key(ec.SECP256R1())
@@ -58,6 +65,8 @@ class SoftAuthenticator:
         self.sign_count = 0
 
     def _cose_public_key(self) -> bytes:
+        import cbor2  # noqa: PLC0415 — see the module docstring
+
         numbers = self._private_key.public_key().public_numbers()
         return cbor2.dumps(
             {
@@ -88,6 +97,8 @@ class SoftAuthenticator:
 
     def register(self, challenge: bytes) -> dict[str, Any]:
         """An attestation response ``verify_registration_response`` accepts."""
+        import cbor2  # noqa: PLC0415 — see the module docstring
+
         client_data = self._client_data(challenge=challenge, ceremony="webauthn.create")
         attestation = cbor2.dumps({"fmt": "none", "attStmt": {}, "authData": self._authenticator_data(attested=True)})
         return {
@@ -104,6 +115,9 @@ class SoftAuthenticator:
 
     def authenticate(self, challenge: bytes) -> dict[str, Any]:
         """An assertion ``verify_authentication_response`` accepts."""
+        from cryptography.hazmat.primitives import hashes  # noqa: PLC0415 — see the module docstring
+        from cryptography.hazmat.primitives.asymmetric import ec  # noqa: PLC0415
+
         client_data = self._client_data(challenge=challenge, ceremony="webauthn.get")
         authenticator_data = self._authenticator_data(attested=False)
         signature = self._private_key.sign(

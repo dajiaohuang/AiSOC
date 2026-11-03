@@ -46,6 +46,7 @@ from app.live_actions import (
 #: takes it straight off the body.
 TENANT = UUID("11111111-1111-1111-1111-111111111111")
 
+
 @pytest.fixture(autouse=True)
 def _clean_registry():
     reset_for_tests()

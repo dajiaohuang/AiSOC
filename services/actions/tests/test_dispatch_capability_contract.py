@@ -55,6 +55,7 @@ pytestmark = pytest.mark.asyncio
 #: takes it straight off the body.
 TENANT = UUID("11111111-1111-1111-1111-111111111111")
 
+
 class _OkExecutor:
     """Reports success without touching a vendor.
 

@@ -29,6 +29,7 @@ from app.services.maturity import MaturityTier
 #: takes it straight off the body.
 TENANT = UUID("11111111-1111-1111-1111-111111111111")
 
+
 class _RecordingExecutor(LiveActionExecutor):
     """Echoes back what it received so tests can inspect params/dry_run."""
 
@@ -204,9 +205,7 @@ def test_a_dry_run_with_no_tenant_is_still_previewed(monkeypatch):
     operator uses to understand why a verb is gated.
     """
     monkeypatch.setenv("AISOC_MATURITY_TIER", "L0_OBSERVE")
-    result = _run(
-        LiveActionRequest(capability="isolate_host", vendor_id="govtest", target="srv-1", dry_run=True)
-    )
+    result = _run(LiveActionRequest(capability="isolate_host", vendor_id="govtest", target="srv-1", dry_run=True))
     assert result.status != LiveActionStatus.BLOCKED
 
 

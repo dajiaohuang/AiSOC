@@ -46,6 +46,7 @@ from app.live_actions import (
 #: takes it straight off the body.
 TENANT = UUID("11111111-1111-1111-1111-111111111111")
 
+
 class _OkExecutor(LiveActionExecutor):
     """Returns SUCCEEDED with a deterministic summary."""
 
